@@ -15,12 +15,9 @@ const Knot = React.createClass({
       x: 0,
       size: 100,
       placed: false,
+      orientation: 0,
       onDrop: () => {}
     };
-  },
-
-  onDragStart: function (ev) {
-    // console.log("tryna drag", ev, ev.clientX, ev.screenX);
   },
 
   onDrop: function (ev) {
@@ -32,12 +29,12 @@ const Knot = React.createClass({
     return React.createElement('img', {
       className: 'knot',
       draggable: !this.state.placed,
-      onDragStart: this.onDragStart,
       onDragEnd: this.onDrop,
       src: src,
       style: {
         top: this.props.y - this.props.size / 2,
-        left: this.props.x - this.props.size / 2
+        left: this.props.x - this.props.size / 2,
+        transform: 'rotate(' + this.props.orientation + 'deg)'
       }
     });
   }

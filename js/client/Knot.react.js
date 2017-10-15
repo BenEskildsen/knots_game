@@ -4,6 +4,7 @@ const React = require('./react/react.js');
 
 export type KnotType = 'cross' | 't' | 'turn' | 'pipe' | 'end';
 export type KnotColor = 'white' | 'oj' | 'blue';
+export type KnotOrientation = 0 | 90 | 180 | 270;
 
 type Props = {
   color: KnotColor,
@@ -12,6 +13,7 @@ type Props = {
   x: number, // center of the img
   y: number,
   size: number,
+  orientation: KnotOrientation,
   onDrop: () => any,
 };
 
@@ -34,12 +36,9 @@ const Knot = React.createClass({
       x: 0,
       size: 100,
       placed: false,
+      orientation: 0,
       onDrop: () => {},
     };
-  },
-
-  onDragStart: function(ev: Object): void {
-    // console.log("tryna drag", ev, ev.clientX, ev.screenX);
   },
 
   onDrop: function(ev: Object): void {
@@ -52,12 +51,12 @@ const Knot = React.createClass({
       <img
         className="knot"
         draggable={!this.state.placed}
-        onDragStart={this.onDragStart}
         onDragEnd={this.onDrop}
         src={src}
         style={{
-          top: this.props.y - this.props.size / 2,
-          left:this.props.x - this.props.size / 2,
+          top:  this.props.y - this.props.size / 2,
+          left: this.props.x - this.props.size / 2,
+          transform: 'rotate(' + this.props.orientation + 'deg)',
         }}
       >
       </img>

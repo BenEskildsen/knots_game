@@ -20,6 +20,7 @@
   "dependencies": {
     "engine.io": "^3.1.2",
     "eureca.io": "^0.7.1",
-    "express": "^4.16.1"
+    "express": "^4.16.1",
+    "react-tween-state": "^0.1.5"
   }
 }

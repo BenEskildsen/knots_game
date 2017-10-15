@@ -7,7 +7,7 @@ const React = require('./react/react.js');
 const Tray = require('./Tray.react.js');
 
 import type {Action} from './Dispatcher.js';
-import type {KnotColor, KnotType} from './Knot.react.js';
+import type {KnotColor, KnotType, KnotOrientation} from './Knot.react.js';
 import type {PlaceKnotAction} from './Tray.react.js';
 
 type Props = {
@@ -80,9 +80,10 @@ const Game = React.createClass({
         />
         <Tray
           knotSize={this.props.knotSize}
-          color={this.state.turnColor} // TODO: should eventually be playerColor
+          color={this.props.playerColor}
           onBoard={this.onBoard}
           validGridPlacement={this.validGridPlacement}
+          gridToBoard={this.gridToBoard}
         />
       </div>
     );
@@ -104,8 +105,9 @@ const Game = React.createClass({
   // and inside of the grid
   placeKnot: function(action: PlaceKnotAction): void {
     const {knots, grid} = this.state;
-    const {gridX, gridY} = this.boardToGrid(action.x, action.y);
-    const knot = this.makeKnot(action.color, action.type, gridX, gridY);
+    const {x, y, color, type, orientation} = action;
+    const {gridX, gridY} = this.boardToGrid(x, y);
+    const knot = this.makeKnot(color, type, gridX, gridY, orientation);
     grid[gridX][gridY] = knot;
     knots.push(knot);
     this.setState({grid, knots});
@@ -150,6 +152,7 @@ const Game = React.createClass({
   makeKnot: function(
     color: KnotColor, type: KnotType,
     gridX: number, gridY: number,
+    orientation: KnotOrientation = 0,
     placed: boolean = true,
   ): React.Node {
     const {boardX, boardY} = this.gridToBoard(gridX, gridY);
@@ -159,6 +162,7 @@ const Game = React.createClass({
       y={boardY}
       size={this.props.knotSize}
       placed={placed}
+      orientation={orientation}
     />;
   },
 

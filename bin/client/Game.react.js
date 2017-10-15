@@ -55,9 +55,10 @@ const Game = React.createClass({
       }),
       React.createElement(Tray, {
         knotSize: this.props.knotSize,
-        color: this.state.turnColor // TODO: should eventually be playerColor
-        , onBoard: this.onBoard,
-        validGridPlacement: this.validGridPlacement
+        color: this.props.playerColor,
+        onBoard: this.onBoard,
+        validGridPlacement: this.validGridPlacement,
+        gridToBoard: this.gridToBoard
       })
     );
   },
@@ -78,8 +79,9 @@ const Game = React.createClass({
   // and inside of the grid
   placeKnot: function (action) {
     const { knots, grid } = this.state;
-    const { gridX, gridY } = this.boardToGrid(action.x, action.y);
-    const knot = this.makeKnot(action.color, action.type, gridX, gridY);
+    const { x, y, color, type, orientation } = action;
+    const { gridX, gridY } = this.boardToGrid(x, y);
+    const knot = this.makeKnot(color, type, gridX, gridY, orientation);
     grid[gridX][gridY] = knot;
     knots.push(knot);
     this.setState({ grid, knots });
@@ -117,14 +119,15 @@ const Game = React.createClass({
     return !this.state.grid[gridX][gridY];
   },
 
-  makeKnot: function (color, type, gridX, gridY, placed = true) {
+  makeKnot: function (color, type, gridX, gridY, orientation = 0, placed = true) {
     const { boardX, boardY } = this.gridToBoard(gridX, gridY);
     return React.createElement(Knot, {
       type: type, color: color,
       x: boardX,
       y: boardY,
       size: this.props.knotSize,
-      placed: placed
+      placed: placed,
+      orientation: orientation
     });
   },
 
