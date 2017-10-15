@@ -1,0 +1,5 @@
+compile js with:
+> ./compile.bash
+run the code with:
+> node server.js
+then in the browser go to localhost:8000

@@ -1,0 +1,25 @@
+{
+  "name": "mobile",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo write some tests",
+    "flow": "flow",
+    "babel": "babel",
+    "browserify": "browserify"
+  },
+  "author": "ben eskildsen",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
+    "babel-preset-flow": "^6.23.0",
+    "flow-bin": "^0.55.0"
+  },
+  "description": "transform away the flow with > npm run babel -- js/ -d bin/ and then make require work on the client with > npm run browserify -- bin/index.js -o bin/compiledBundle.js or more simply run instead of the previous commands: > ./compile.bash",
+  "dependencies": {
+    "engine.io": "^3.1.2",
+    "eureca.io": "^0.7.1",
+    "express": "^4.16.1"
+  }
+}
