@@ -13,10 +13,10 @@ const Tray = React.createClass({
   getInitialState: function () {
     return {
       knotCounts: {
-        pipe: 3,
-        turn: 3,
-        t: 3,
-        cross: 3
+        pipe: 4,
+        turn: 4,
+        t: 4,
+        cross: 4
       },
       orientation: 90
     };

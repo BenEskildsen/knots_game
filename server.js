@@ -16,7 +16,7 @@ app.use(express.static(__dirname));
 //   res.sendFile('/index.html');
 // });
 
-server.listen(8000);
+server.listen(process.env.PORT || 8000);
 
 const clients = {};
 
