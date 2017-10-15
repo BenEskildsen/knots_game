@@ -1,5 +1,15 @@
-compile js with:
+compile js to bin with:
 > ./compile.bash
-run the code with:
-> node server.js
-then in the browser go to localhost:8000
+
+run the app locally with:
+> npm start
+then in the browser go to:
+  localhost:8000
+
+deploy the code by git pushing to master.
+Check the logs at:
+  https://dashboard.heroku.com/apps/knots-game/logs
+to make sure the app deploys successfully.
+
+View the app running at:
+  https://knots-game.herokuapp.com/
