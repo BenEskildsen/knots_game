@@ -15,7 +15,7 @@ const Game = React.createClass({
   // --------------------------------------------------------------------------
 
   componentDidMount: function () {
-    Dispatcher.listen(this.onDispatch);
+    Dispatcher.relayListen(this.onRelayDispatch);
   },
 
   getDefaultProps: function () {
@@ -23,7 +23,7 @@ const Game = React.createClass({
       gridWidth: 9,
       gridHeight: 9,
       knotSize: 100,
-      playerColor: 'oj'
+      playerColor: 'white'
     };
   },
 
@@ -67,7 +67,7 @@ const Game = React.createClass({
   // Action handling
   // --------------------------------------------------------------------------
 
-  onDispatch: function (action) {
+  onRelayDispatch: function (action) {
     switch (action.actionType) {
       case 'PLACE_KNOT':
         this.placeKnot(action);

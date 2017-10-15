@@ -5,22 +5,31 @@
  * dispatcher and receive the actions sent to it in the form of a
  * parameter to a callback
  *
- * For now Game.react will listen to the dispatcher directly, but once I have
- * Eureca clients set up the server proxy will listen to the dispatcher
- * instead and I will have a separate mechanism for sending server responses
- * back to Game.react
+ * I have it set up such that the server is listening to dispatch and Game.react
+ * is listening to relayDispatch. So when the user places a piece it first goes
+ * to the server, and then the server relayDispatches that action to all clients
  */
 const Dispatcher = {
   listeners: [],
+  relayListeners: [],
 
   dispatch: function (action) {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
-
+  // listen to actions dispatched from the Dispatcher
   listen: function (callback) {
     this.listeners.push(callback);
+  },
+
+  relayDispatch: function (action) {
+    for (const fn of this.relayListeners) {
+      fn(action);
+    }
+  },
+  relayListen: function (callback) {
+    this.relayListeners.push(callback);
   }
 
 };

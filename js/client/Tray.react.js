@@ -54,6 +54,9 @@ const Tray = React.createClass({
   },
 
   render: function() {
+    if (this.props.color === 'white') {
+      return <div className="tray" id="tray"> </div>;
+    }
     const knots = [];
     let t = 0;
     for (let type in this.state.knotCounts) {

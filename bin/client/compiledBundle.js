@@ -22,22 +22,31 @@ module.exports = Board;
  * dispatcher and receive the actions sent to it in the form of a
  * parameter to a callback
  *
- * For now Game.react will listen to the dispatcher directly, but once I have
- * Eureca clients set up the server proxy will listen to the dispatcher
- * instead and I will have a separate mechanism for sending server responses
- * back to Game.react
+ * I have it set up such that the server is listening to dispatch and Game.react
+ * is listening to relayDispatch. So when the user places a piece it first goes
+ * to the server, and then the server relayDispatches that action to all clients
  */
 const Dispatcher = {
   listeners: [],
+  relayListeners: [],
 
   dispatch: function (action) {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
-
+  // listen to actions dispatched from the Dispatcher
   listen: function (callback) {
     this.listeners.push(callback);
+  },
+
+  relayDispatch: function (action) {
+    for (const fn of this.relayListeners) {
+      fn(action);
+    }
+  },
+  relayListen: function (callback) {
+    this.relayListeners.push(callback);
   }
 
 };
@@ -61,7 +70,7 @@ const Game = React.createClass({
   // --------------------------------------------------------------------------
 
   componentDidMount: function () {
-    Dispatcher.listen(this.onDispatch);
+    Dispatcher.relayListen(this.onRelayDispatch);
   },
 
   getDefaultProps: function () {
@@ -69,7 +78,7 @@ const Game = React.createClass({
       gridWidth: 9,
       gridHeight: 9,
       knotSize: 100,
-      playerColor: 'oj'
+      playerColor: 'white'
     };
   },
 
@@ -113,7 +122,7 @@ const Game = React.createClass({
   // Action handling
   // --------------------------------------------------------------------------
 
-  onDispatch: function (action) {
+  onRelayDispatch: function (action) {
     switch (action.actionType) {
       case 'PLACE_KNOT':
         this.placeKnot(action);
@@ -285,6 +294,13 @@ const Tray = React.createClass({
   },
 
   render: function () {
+    if (this.props.color === 'white') {
+      return React.createElement(
+        'div',
+        { className: 'tray', id: 'tray' },
+        ' '
+      );
+    }
     const knots = [];
     let t = 0;
     for (let type in this.state.knotCounts) {
@@ -372,18 +388,37 @@ module.exports = Tray;
 
 
 // const Eureca = require('eureca.io'); // I get this for free from index.html
+const Dispatcher = require('./Dispatcher.js');
 const Game = require('./Game.react.js');
 const React = require('./react/react.js');
 // $FlowFixMe
 const client = new Eureca.Client({ uri: 'http://localhost:8000/' });
 window.client = client;
 
+let serverProxy;
 client.ready(server => {
-   server.sendMessage("hello");
+  serverProxy = server;
 });
 
-React.render(React.createElement(Game, null), document.getElementById('container'));
-},{"./Game.react.js":3,"./react/react.js":7}],7:[function(require,module,exports){
+client.exports.onClientConnect = function (playerColor, id, actions) {
+  Dispatcher.listen(action => {
+    serverProxy.onDispatch(playerColor, action);
+  });
+  console.log("connected with", playerColor, id);
+  React.render(React.createElement(Game, { id: id, playerColor: playerColor }), document.getElementById('container'));
+  // once ready, dispatch all the actions to catch up the game state
+  // TODO: this doesn't support the tray, so refreshing will let you refill it
+  for (const action of actions) {
+    Dispatcher.relayDispatch(action);
+  }
+};
+
+// when the other player dispatches, that action is passed through the server
+// and then to this function
+client.exports.relayDispatch = function (action) {
+  Dispatcher.relayDispatch(action);
+};
+},{"./Dispatcher.js":2,"./Game.react.js":3,"./react/react.js":7}],7:[function(require,module,exports){
 (function (global){
 /**
  * React v0.13.3
