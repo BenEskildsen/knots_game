@@ -5,7 +5,7 @@ const Dispatcher = require('./Dispatcher.js');
 const Game = require('./Game.react.js');
 const React = require('./react/react.js');
 // $FlowFixMe
-const client = new Eureca.Client({uri: 'http://localhost:8000/'});
+const client = new Eureca.Client();
 window.client = client;
 
 let serverProxy;
