@@ -13,22 +13,22 @@ const Dispatcher = {
   listeners: [],
   relayListeners: [],
 
-  dispatch: function (action) {
+  serverDispatch: function (action) {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
   // listen to actions dispatched from the Dispatcher
-  listen: function (callback) {
+  serverListen: function (callback) {
     this.listeners.push(callback);
   },
 
-  relayDispatch: function (action) {
+  clientDispatch: function (action) {
     for (const fn of this.relayListeners) {
       fn(action);
     }
   },
-  relayListen: function (callback) {
+  clientListen: function (callback) {
     this.relayListeners.push(callback);
   }
 

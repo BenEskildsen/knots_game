@@ -8,7 +8,7 @@ const Tray = require('./Tray.react.js');
 
 import type {Action} from './Dispatcher.js';
 import type {KnotColor, KnotType, KnotOrientation} from './Knot.react.js';
-import type {PlaceKnotAction} from './Tray.react.js';
+import type {PlaceKnotAction, RumbleAction} from './Tray.react.js';
 
 type Props = {
   gridWidth: number, // in grid coordinates (not pixels, see note below)
@@ -39,7 +39,7 @@ const Game = React.createClass({
   // --------------------------------------------------------------------------
 
   componentDidMount: function(): void {
-    Dispatcher.relayListen(this.onRelayDispatch);
+    Dispatcher.clientListen(this.onRelayDispatch);
   },
 
   getDefaultProps: function(): Props {
@@ -98,6 +98,9 @@ const Game = React.createClass({
       case 'PLACE_KNOT':
         this.placeKnot(action);
         break;
+      case 'RUMBLE':
+        this.rumble(action);
+        break;
     }
   },
 
@@ -111,6 +114,10 @@ const Game = React.createClass({
     grid[gridX][gridY] = knot;
     knots.push(knot);
     this.setState({grid, knots});
+  },
+
+  rumble: function(action: RumbleAction): void {
+
   },
 
   // --------------------------------------------------------------------------

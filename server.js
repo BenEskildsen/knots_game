@@ -3,7 +3,7 @@ var express = require('express')
   , server = require('http').createServer(app);
 const Eureca = require('eureca.io');
 
-const eurecaServer = new Eureca.Server({allow: ['onClientConnect', 'relayDispatch']});
+const eurecaServer = new Eureca.Server({allow: ['onClientConnect', 'clientDispatch']});
 eurecaServer.attach(server);
 app.use(express.static(__dirname));
 // app.get('/', (req, res, next) => {
@@ -23,7 +23,7 @@ eurecaServer.onConnect(function (connection) {
   let client = {
     playerColor: 'white',
     id: connection.id,
-    relayDispatch: connection.clientProxy.relayDispatch,
+    clientDispatch: connection.clientProxy.clientDispatch,
   };
   if (!clients.oj) {
     client.playerColor = 'oj';
@@ -60,12 +60,12 @@ eurecaServer.exports.onDispatch = (playerColor, action) => {
   console.log("player", playerColor, "dispatched", action);
   actions.push(action);
   if (clients.oj) {
-    clients.oj.relayDispatch(action);
+    clients.oj.clientDispatch(action);
   }
   if (clients.blue) {
-    clients.blue.relayDispatch(action);
+    clients.blue.clientDispatch(action);
   }
   for (const ob of clients.observers) {
-    ob.relayDispatch(action);
+    ob.clientDispatch(action);
   }
 }

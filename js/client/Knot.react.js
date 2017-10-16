@@ -5,6 +5,7 @@ const React = require('./react/react.js');
 export type KnotType = 'cross' | 't' | 'turn' | 'pipe' | 'end';
 export type KnotColor = 'white' | 'oj' | 'blue';
 export type KnotOrientation = 0 | 90 | 180 | 270;
+export type KnotConnectionConfig = {};
 
 type Props = {
   color: KnotColor,

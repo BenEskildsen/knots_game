@@ -15,7 +15,7 @@ const Game = React.createClass({
   // --------------------------------------------------------------------------
 
   componentDidMount: function () {
-    Dispatcher.relayListen(this.onRelayDispatch);
+    Dispatcher.clientListen(this.onRelayDispatch);
   },
 
   getDefaultProps: function () {
@@ -72,6 +72,9 @@ const Game = React.createClass({
       case 'PLACE_KNOT':
         this.placeKnot(action);
         break;
+      case 'RUMBLE':
+        this.rumble(action);
+        break;
     }
   },
 
@@ -86,6 +89,8 @@ const Game = React.createClass({
     knots.push(knot);
     this.setState({ grid, knots });
   },
+
+  rumble: function (action) {},
 
   // --------------------------------------------------------------------------
   // Helpers

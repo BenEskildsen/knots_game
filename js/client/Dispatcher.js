@@ -21,22 +21,22 @@ const Dispatcher = {
   listeners: [],
   relayListeners: [],
 
-  dispatch: function(action: Action): void {
+  serverDispatch: function(action: Action): void {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
   // listen to actions dispatched from the Dispatcher
-  listen: function(callback: () => any): void {
+  serverListen: function(callback: () => any): void {
     this.listeners.push(callback);
   },
 
-  relayDispatch: function(action: Action): void {
+  clientDispatch: function(action: Action): void {
     for (const fn of this.relayListeners) {
       fn(action);
     }
   },
-  relayListen: function(callback: () => any): void {
+  clientListen: function(callback: () => any): void {
     this.relayListeners.push(callback);
   },
 

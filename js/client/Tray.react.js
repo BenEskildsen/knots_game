@@ -16,6 +16,10 @@ export type PlaceKnotAction = {
   orientation: KnotOrientation,
 };
 
+export type RumbleAction = {
+  actionType: 'RUMBLE'
+}
+
 type Props = {
   color: KnotColor,
   knotSize: number,
@@ -54,9 +58,9 @@ const Tray = React.createClass({
   },
 
   render: function() {
-    if (this.props.color === 'white') {
-      return <div className="tray" id="tray"> </div>;
-    }
+    // if (this.props.color === 'white') {
+    //   return <div className="tray" id="tray"> </div>;
+    // }
     const knots = [];
     let t = 0;
     for (let type in this.state.knotCounts) {
@@ -105,10 +109,12 @@ const Tray = React.createClass({
     if (this.props.onBoard(x, y) && this.props.validGridPlacement(x, y)) {
       const orientation = this.state.orientation;
       const placeKnot = {actionType: 'PLACE_KNOT', type, color, x, y, orientation};
-      Dispatcher.dispatch(placeKnot);
+      Dispatcher.serverDispatch(placeKnot);
       // I don't know how to use react :(
       this.state.knotCounts[type] = this.state.knotCounts[type] - 1;
       this.setState({knotCounts: this.state.knotCounts});
+    } else {
+      Dispatcher.clientDispatch({actionType: 'RUMBLE'});
     }
   },
 
@@ -117,7 +123,7 @@ const Tray = React.createClass({
     this.tweenState('orientation', {
       easing: tweenState.easingTypes.easeInOutQuad,
       duration: 500,
-      endValue: (orientation + 90) % 360,
+      endValue: (orientation + 90),
     });
   },
 
@@ -126,7 +132,7 @@ const Tray = React.createClass({
     this.tweenState('orientation', {
       easing: tweenState.easingTypes.easeInOutQuad,
       duration: 500,
-      endValue: (orientation + 270) % 360,
+      endValue: (orientation - 90),
     });
   },
 });

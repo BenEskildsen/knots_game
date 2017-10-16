@@ -30,22 +30,22 @@ const Dispatcher = {
   listeners: [],
   relayListeners: [],
 
-  dispatch: function (action) {
+  serverDispatch: function (action) {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
   // listen to actions dispatched from the Dispatcher
-  listen: function (callback) {
+  serverListen: function (callback) {
     this.listeners.push(callback);
   },
 
-  relayDispatch: function (action) {
+  clientDispatch: function (action) {
     for (const fn of this.relayListeners) {
       fn(action);
     }
   },
-  relayListen: function (callback) {
+  clientListen: function (callback) {
     this.relayListeners.push(callback);
   }
 
@@ -70,7 +70,7 @@ const Game = React.createClass({
   // --------------------------------------------------------------------------
 
   componentDidMount: function () {
-    Dispatcher.relayListen(this.onRelayDispatch);
+    Dispatcher.clientListen(this.onRelayDispatch);
   },
 
   getDefaultProps: function () {
@@ -127,6 +127,9 @@ const Game = React.createClass({
       case 'PLACE_KNOT':
         this.placeKnot(action);
         break;
+      case 'RUMBLE':
+        this.rumble(action);
+        break;
     }
   },
 
@@ -141,6 +144,8 @@ const Game = React.createClass({
     knots.push(knot);
     this.setState({ grid, knots });
   },
+
+  rumble: function (action) {},
 
   // --------------------------------------------------------------------------
   // Helpers
@@ -294,13 +299,9 @@ const Tray = React.createClass({
   },
 
   render: function () {
-    if (this.props.color === 'white') {
-      return React.createElement(
-        'div',
-        { className: 'tray', id: 'tray' },
-        ' '
-      );
-    }
+    // if (this.props.color === 'white') {
+    //   return <div className="tray" id="tray"> </div>;
+    // }
     const knots = [];
     let t = 0;
     for (let type in this.state.knotCounts) {
@@ -357,10 +358,12 @@ const Tray = React.createClass({
     if (this.props.onBoard(x, y) && this.props.validGridPlacement(x, y)) {
       const orientation = this.state.orientation;
       const placeKnot = { actionType: 'PLACE_KNOT', type, color, x, y, orientation };
-      Dispatcher.dispatch(placeKnot);
+      Dispatcher.serverDispatch(placeKnot);
       // I don't know how to use react :(
       this.state.knotCounts[type] = this.state.knotCounts[type] - 1;
       this.setState({ knotCounts: this.state.knotCounts });
+    } else {
+      Dispatcher.clientDispatch({ actionType: 'RUMBLE' });
     }
   },
 
@@ -369,7 +372,7 @@ const Tray = React.createClass({
     this.tweenState('orientation', {
       easing: tweenState.easingTypes.easeInOutQuad,
       duration: 500,
-      endValue: (orientation + 90) % 360
+      endValue: orientation + 90
     });
   },
 
@@ -378,7 +381,7 @@ const Tray = React.createClass({
     this.tweenState('orientation', {
       easing: tweenState.easingTypes.easeInOutQuad,
       duration: 500,
-      endValue: (orientation + 270) % 360
+      endValue: orientation - 90
     });
   }
 });
@@ -401,7 +404,7 @@ client.ready(server => {
 });
 
 client.exports.onClientConnect = function (playerColor, id, actions) {
-  Dispatcher.listen(action => {
+  Dispatcher.serverListen(action => {
     serverProxy.onDispatch(playerColor, action);
   });
   console.log("connected with", playerColor, id);
@@ -409,14 +412,14 @@ client.exports.onClientConnect = function (playerColor, id, actions) {
   // once ready, dispatch all the actions to catch up the game state
   // TODO: this doesn't support the tray, so refreshing will let you refill it
   for (const action of actions) {
-    Dispatcher.relayDispatch(action);
+    Dispatcher.clientDispatch(action);
   }
 };
 
 // when the other player dispatches, that action is passed through the server
 // and then to this function
-client.exports.relayDispatch = function (action) {
-  Dispatcher.relayDispatch(action);
+client.exports.clientDispatch = function (action) {
+  Dispatcher.clientDispatch(action);
 };
 },{"./Dispatcher.js":2,"./Game.react.js":3,"./react/react.js":7}],7:[function(require,module,exports){
 (function (global){

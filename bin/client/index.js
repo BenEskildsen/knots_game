@@ -14,7 +14,7 @@ client.ready(server => {
 });
 
 client.exports.onClientConnect = function (playerColor, id, actions) {
-  Dispatcher.listen(action => {
+  Dispatcher.serverListen(action => {
     serverProxy.onDispatch(playerColor, action);
   });
   console.log("connected with", playerColor, id);
@@ -22,12 +22,12 @@ client.exports.onClientConnect = function (playerColor, id, actions) {
   // once ready, dispatch all the actions to catch up the game state
   // TODO: this doesn't support the tray, so refreshing will let you refill it
   for (const action of actions) {
-    Dispatcher.relayDispatch(action);
+    Dispatcher.clientDispatch(action);
   }
 };
 
 // when the other player dispatches, that action is passed through the server
 // and then to this function
-client.exports.relayDispatch = function (action) {
-  Dispatcher.relayDispatch(action);
+client.exports.clientDispatch = function (action) {
+  Dispatcher.clientDispatch(action);
 };
