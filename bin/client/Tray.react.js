@@ -18,7 +18,7 @@ const Tray = React.createClass({
         t: 4,
         cross: 4
       },
-      orientation: 90
+      orientation: 0
     };
   },
 
@@ -30,17 +30,15 @@ const Tray = React.createClass({
   },
 
   render: function () {
-    // if (this.props.color === 'white') {
-    //   return <div className="tray" id="tray"> </div>;
-    // }
     const knots = [];
     let t = 0;
     for (let type in this.state.knotCounts) {
       for (let i = 0; i < this.state.knotCounts[type]; i++) {
         const { boardX, boardY } = this.props.gridToBoard(i, t);
+        // TODO Tray should take in pods, not make them itself
         knots.push(React.createElement(Knot, {
-          x: boardX,
-          y: boardY,
+          boardX: boardX,
+          boardY: boardY,
           color: this.props.color,
           type: type,
           size: this.props.knotSize,
@@ -90,7 +88,7 @@ const Tray = React.createClass({
       const orientation = this.state.orientation;
       const placeKnot = { actionType: 'PLACE_KNOT', type, color, x, y, orientation };
       Dispatcher.serverDispatch(placeKnot);
-      // I don't know how to use react :(
+      // I don't know how to set deep properties in react :(
       this.state.knotCounts[type] = this.state.knotCounts[type] - 1;
       this.setState({ knotCounts: this.state.knotCounts });
     } else {

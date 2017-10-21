@@ -16,8 +16,13 @@ const clients = {
   blue: null,
   observers: [],
 };
+
+const GRID_WIDTH = 9;
+const GRID_HEIGHT = 9;
+const SEED = 0.3;
+
 // record all dispatched actions to bring new connections up to date
-let actions = [];
+let actions = initActions();
 
 eurecaServer.onConnect(function (connection) {
   let client = {
@@ -34,7 +39,11 @@ eurecaServer.onConnect(function (connection) {
   } else {
     clients.observers.push(client);
   }
-  connection.clientProxy.onClientConnect(client.playerColor, client.id, actions);
+  connection.clientProxy.onClientConnect(
+    client.playerColor, client.id,
+    actions,
+    GRID_WIDTH, GRID_HEIGHT
+  );
   console.log(client.playerColor, "connected");
 });
 
@@ -49,7 +58,7 @@ eurecaServer.onDisconnect(function (connection) {
     console.log("blue disconnected");
   }
   if (!clients.blue && !clients.oj) {
-    actions = []; // restart game
+    actions = initActions(); // restart game
   }
   // TODO support observers disconnecting
 });
@@ -69,3 +78,88 @@ eurecaServer.exports.onDispatch = (playerColor, action) => {
     ob.clientDispatch(action);
   }
 }
+
+// ----------------------------------------------------------------------------
+// seeding the board
+// TODO break this out into its own file
+// ----------------------------------------------------------------------------
+
+function initActions() {
+  const actions = [];
+  for (let x = 0; x < GRID_WIDTH; x++) {
+    const row = [];
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+      const maybeAction = maybePlaceKnotAction(x, y);
+      if (maybeAction) {
+        actions.push(maybeAction);
+      }
+    }
+  }
+
+  return actions;
+}
+
+function maybePlaceKnotAction(gridX, gridY) {
+  if (Math.random() < SEED) {
+    let type = 'pipe';
+    const rand = Math.random();
+    if (rand < 0.25) {
+      type = 'turn';
+    } else if (rand < 0.5) {
+      type = 't';
+    } else if (rand < 0.75) {
+      type = 'cross';
+    }
+
+    return {
+      actionType: 'PLACE_KNOT',
+      type, color: 'white',
+      gridX, gridY,
+      orientation: Math.round(Math.random() * 4) * 90,
+    }
+  }
+}
+
+
+
+// neutralKnotsAroundBorder(x: number, y: number): ?Action {
+//   const {gridWidth, gridHeight} = this.props;
+//   if (x == 0 || y == 0 || x == gridWidth - 1 || y == gridHeight - 1) {
+//     return this.renderKnot('white', 'cross', x, y);
+//   }
+//   return null;
+// },
+//
+// neutralPipesMostly(x: number, y: number): ?Knot {
+//   const {gridWidth, gridHeight} = this.props;
+//   // corners
+//   if (x == 0 && y == 0) {
+//     return this.renderKnot('white', 'turn', x, y, 270);
+//   }
+//   if (x == 0 && y == gridHeight - 1) {
+//     return this.renderKnot('white', 'turn', x, y, 180);
+//   }
+//   if (y == 0 && x == gridWidth - 1) {
+//     return this.renderKnot('white', 'turn', x, y);
+//   }
+//   if (x == gridWidth - 1 && y == gridHeight - 1) {
+//     return this.renderKnot('white', 'turn', x, y, 90);
+//   }
+//
+//   // some connections in the sides
+//   if (x == Math.floor(this.props.gridWidth/2) && (y == 0 || y == gridHeight - 1)) {
+//     return this.renderKnot('white', 't', x, y, (y == 0 ? 0 : 180));
+//   }
+//   if (y == Math.floor(this.props.gridHeight/2) && (x == 0 || x == gridWidth - 1)) {
+//     return this.renderKnot('white', 't', x, y, (x == 0 ? 270 : 90));
+//   }
+//
+//   // sides
+//   if (x == 0 || x == gridWidth - 1) {
+//     return this.renderKnot('white', 'pipe', x, y);
+//   }
+//   if (y == 0 || y == gridHeight - 1) {
+//     return this.renderKnot('white', 'pipe', x, y, 90);
+//   }
+//   return null;
+// },

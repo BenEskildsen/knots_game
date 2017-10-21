@@ -28,49 +28,56 @@ module.exports = Board;
  */
 const Dispatcher = {
   listeners: [],
-  relayListeners: [],
+  clientListeners: [],
 
+  // TODO clear up this distinction.
+  // an action is dispatched TOO the server, not by the server
   serverDispatch: function (action) {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
-  // listen to actions dispatched from the Dispatcher
+
+  // server listens to actions dispatched from the Dispatcher
   serverListen: function (callback) {
     this.listeners.push(callback);
   },
 
   clientDispatch: function (action) {
-    for (const fn of this.relayListeners) {
+    for (const fn of this.clientListeners) {
       fn(action);
     }
   },
   clientListen: function (callback) {
-    this.relayListeners.push(callback);
+    this.clientListeners.push(callback);
   }
 
 };
 
 module.exports = Dispatcher;
 },{}],3:[function(require,module,exports){
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 const Board = require('./Board.react.js');
 const Dispatcher = require('./Dispatcher.js');
 const Knot = require('./Knot.react.js');
 const React = require('./react/react.js');
 const Tray = require('./Tray.react.js');
+const tweenState = require('react-tween-state');
 
 /**
  * Note: board refers to the pixel coordinates dom element, grid refers to the
  * WxH playing field
  */
 const Game = React.createClass({
+  mixins: [tweenState.Mixin],
 
   // --------------------------------------------------------------------------
   // React lifecycle methods
   // --------------------------------------------------------------------------
 
   componentDidMount: function () {
-    Dispatcher.clientListen(this.onRelayDispatch);
+    Dispatcher.clientListen(this.onClientDispatch);
   },
 
   getDefaultProps: function () {
@@ -83,7 +90,7 @@ const Game = React.createClass({
   },
 
   getInitialState: function () {
-    const { grid, knots } = this.makeGrid(this.props.gridWidth, this.props.gridHeight, [this.neutralKnotsAroundBorder] // <-- functions that seed the grid
+    const { grid, knots } = this.makeGrid(this.props.gridWidth, this.props.gridHeight, [this.neutralPipesMostly] // <-- functions that seed the grid
     );
     return {
       boardDimensions: {
@@ -94,11 +101,21 @@ const Game = React.createClass({
       },
       grid,
       knots,
+      xOffset: 0, // for eg. rumbling the screen
+      yOffset: 0,
       turnColor: 'oj'
     };
   },
 
   render: function () {
+    const renderedKnots = [];
+    for (let i = 0; i < this.state.knots.length; i++) {
+      const knot = this.state.knots[i];
+      renderedKnots.push(React.createElement(Knot, _extends({}, knot.props, {
+        boardX: knot.props.boardX + this.state.xOffset,
+        boardY: knot.props.boardY + this.state.yOffset })));
+    }
+
     return React.createElement(
       'div',
       { className: 'background' },
@@ -106,7 +123,7 @@ const Game = React.createClass({
         width: this.props.gridWidth,
         height: this.props.gridHeight,
         knotSize: this.props.knotSize,
-        knots: this.state.knots
+        knots: renderedKnots
       }),
       React.createElement(Tray, {
         knotSize: this.props.knotSize,
@@ -119,16 +136,43 @@ const Game = React.createClass({
   },
 
   // --------------------------------------------------------------------------
+  // Rendering helpers
+  // --------------------------------------------------------------------------
+
+  renderKnot: function (color, type, gridX, gridY, orientation = 0, placed = true) {
+    const { boardX, boardY } = this.gridToBoard(gridX, gridY);
+    return React.createElement(Knot, {
+      type: type, color: color,
+      boardX: boardX,
+      boardY: boardY,
+      size: this.props.knotSize,
+      placed: placed,
+      orientation: orientation
+    });
+  },
+
+  rumble: function () {
+    const nextKnots = this.state.knots;
+    const offset = Math.random() * 50 - 25;
+    const xOrYOffset = Math.random() > 0.5 ? 'xOffset' : 'yOffset';
+    this.tweenState(xOrYOffset, {
+      easing: tweenState.easingTypes.easeInOutQuad,
+      duration: 25,
+      endValue: this.state[xOrYOffset] + offset
+    });
+  },
+
+  // --------------------------------------------------------------------------
   // Action handling
   // --------------------------------------------------------------------------
 
-  onRelayDispatch: function (action) {
+  onClientDispatch: function (action) {
     switch (action.actionType) {
       case 'PLACE_KNOT':
         this.placeKnot(action);
         break;
       case 'RUMBLE':
-        this.rumble(action);
+        this.rumbleSequence(action);
         break;
     }
   },
@@ -138,17 +182,36 @@ const Game = React.createClass({
   placeKnot: function (action) {
     const { knots, grid } = this.state;
     const { x, y, color, type, orientation } = action;
-    const { gridX, gridY } = this.boardToGrid(x, y);
-    const knot = this.makeKnot(color, type, gridX, gridY, orientation);
+    let gridX, gridY;
+    if (x == null && y == null) {
+      gridX = action.gridX;
+      gridY = action.gridY;
+      const knot = this.renderKnot(color, type, gridX, gridY, orientation);
+    } else {
+      const gridCoord = this.boardToGrid(x, y);
+      gridX = gridCoord.gridX;
+      gridY = gridCoord.gridY;
+    }
+    const knot = this.renderKnot(color, type, gridX, gridY, orientation);
     grid[gridX][gridY] = knot;
     knots.push(knot);
     this.setState({ grid, knots });
   },
 
-  rumble: function (action) {},
+  rumblerInterval: null,
+  rumbles: 0,
+
+  rumbleSequence: function (action) {
+    this.rumbles = 30;
+
+    this.rumblerInterval = setInterval(() => {
+      this.rumbles === 0 ? clearInterval(this.rumblerInterval) : this.rumble;
+      this.rumbles--;
+    }, 30);
+  },
 
   // --------------------------------------------------------------------------
-  // Helpers
+  // Helpers TODO move this out to a non-react-specfic utils file
   // --------------------------------------------------------------------------
 
   // convert board coordinates (pixels) to grid coordinates
@@ -173,22 +236,24 @@ const Game = React.createClass({
     return knotX < right && knotX > left && knotY > top && knotY < bottom;
   },
 
-  // is knotX, knotY unoccupied?
   validGridPlacement: function (knotX, knotY) {
     const { gridX, gridY } = this.boardToGrid(knotX, knotY);
+    const unoccupied = this.unoccupied(gridX, gridY);
+    const connected = this.connected(gridX, gridY);
+    const notBlockingConnections = this.notBlockingConnections(gridX, gridY);
+    return unoccupied && connected && notBlockingConnections;
+  },
+
+  unoccupied: function (gridX, gridY) {
     return !this.state.grid[gridX][gridY];
   },
 
-  makeKnot: function (color, type, gridX, gridY, orientation = 0, placed = true) {
-    const { boardX, boardY } = this.gridToBoard(gridX, gridY);
-    return React.createElement(Knot, {
-      type: type, color: color,
-      x: boardX,
-      y: boardY,
-      size: this.props.knotSize,
-      placed: placed,
-      orientation: orientation
-    });
+  connected: function (gridX, gridY) {
+    return !this.state.grid[gridX][gridY];
+  },
+
+  notBlockingConnections: function (gridX, gridY) {
+    return !this.state.grid[gridX][gridY];
   },
 
   makeGrid: function (width, height, seedFunctions) {
@@ -197,32 +262,25 @@ const Game = React.createClass({
     for (let x = 0; x < width; x++) {
       const row = [];
       for (let y = 0; y < height; y++) {
-        let maybeKnot;
-        for (const seedFn of seedFunctions) {
-          maybeKnot = seedFn(x, y);
-        }
-        if (maybeKnot) {
-          knots.push(maybeKnot);
-        }
+        let maybeKnot = null;
+        // NOTE: seeding grid done server side now
+        // for (const seedFn of seedFunctions) {
+        //   maybeKnot = seedFn(x, y);
+        // }
+        // if (maybeKnot) {
+        //   knots.push(maybeKnot);
+        // }
         row.push(maybeKnot);
       }
       grid.push(row);
     }
     return { grid, knots };
-  },
-
-  neutralKnotsAroundBorder(x, y) {
-    const { gridWidth, gridHeight } = this.props;
-    if (x == 0 || y == 0 || x == gridWidth - 1 || y == gridHeight - 1) {
-      return this.makeKnot('white', 'cross', x, y);
-    }
-    return null;
   }
 
 });
 
 module.exports = Game;
-},{"./Board.react.js":1,"./Dispatcher.js":2,"./Knot.react.js":4,"./Tray.react.js":5,"./react/react.js":7}],4:[function(require,module,exports){
+},{"./Board.react.js":1,"./Dispatcher.js":2,"./Knot.react.js":4,"./Tray.react.js":5,"./react/react.js":7,"react-tween-state":8}],4:[function(require,module,exports){
 const React = require('./react/react.js');
 
 const Knot = React.createClass({
@@ -236,8 +294,8 @@ const Knot = React.createClass({
     return {
       color: 'white',
       type: 'cross',
-      y: 0,
-      x: 0,
+      boardX: 0,
+      boardY: 0,
       size: 100,
       placed: false,
       orientation: 0,
@@ -257,8 +315,8 @@ const Knot = React.createClass({
       onDragEnd: this.onDrop,
       src: src,
       style: {
-        top: this.props.y - this.props.size / 2,
-        left: this.props.x - this.props.size / 2,
+        top: this.props.boardY - this.props.size / 2,
+        left: this.props.boardX - this.props.size / 2,
         transform: 'rotate(' + this.props.orientation + 'deg)'
       }
     });
@@ -287,7 +345,7 @@ const Tray = React.createClass({
         t: 4,
         cross: 4
       },
-      orientation: 90
+      orientation: 0
     };
   },
 
@@ -299,17 +357,15 @@ const Tray = React.createClass({
   },
 
   render: function () {
-    // if (this.props.color === 'white') {
-    //   return <div className="tray" id="tray"> </div>;
-    // }
     const knots = [];
     let t = 0;
     for (let type in this.state.knotCounts) {
       for (let i = 0; i < this.state.knotCounts[type]; i++) {
         const { boardX, boardY } = this.props.gridToBoard(i, t);
+        // TODO Tray should take in pods, not make them itself
         knots.push(React.createElement(Knot, {
-          x: boardX,
-          y: boardY,
+          boardX: boardX,
+          boardY: boardY,
           color: this.props.color,
           type: type,
           size: this.props.knotSize,
@@ -359,7 +415,7 @@ const Tray = React.createClass({
       const orientation = this.state.orientation;
       const placeKnot = { actionType: 'PLACE_KNOT', type, color, x, y, orientation };
       Dispatcher.serverDispatch(placeKnot);
-      // I don't know how to use react :(
+      // I don't know how to set deep properties in react :(
       this.state.knotCounts[type] = this.state.knotCounts[type] - 1;
       this.setState({ knotCounts: this.state.knotCounts });
     } else {
@@ -397,18 +453,19 @@ const React = require('./react/react.js');
 // $FlowFixMe
 const client = new Eureca.Client();
 window.client = client;
+window.dispatch = Dispatcher.clientDispatch.bind(Dispatcher);
 
 let serverProxy;
 client.ready(server => {
   serverProxy = server;
 });
 
-client.exports.onClientConnect = function (playerColor, id, actions) {
+client.exports.onClientConnect = function (playerColor, id, actions, gridWidth, gridHeight) {
   Dispatcher.serverListen(action => {
     serverProxy.onDispatch(playerColor, action);
   });
   console.log("connected with", playerColor, id);
-  React.render(React.createElement(Game, { id: id, playerColor: playerColor }), document.getElementById('container'));
+  React.render(React.createElement(Game, { id: id, playerColor: playerColor, gridWidth: gridWidth, gridHeight: gridHeight }), document.getElementById('container'));
   // once ready, dispatch all the actions to catch up the game state
   // TODO: this doesn't support the tray, so refreshing will let you refill it
   for (const action of actions) {

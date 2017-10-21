@@ -11,25 +11,28 @@
  */
 const Dispatcher = {
   listeners: [],
-  relayListeners: [],
+  clientListeners: [],
 
+  // TODO clear up this distinction.
+  // an action is dispatched TOO the server, not by the server
   serverDispatch: function (action) {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
-  // listen to actions dispatched from the Dispatcher
+
+  // server listens to actions dispatched from the Dispatcher
   serverListen: function (callback) {
     this.listeners.push(callback);
   },
 
   clientDispatch: function (action) {
-    for (const fn of this.relayListeners) {
+    for (const fn of this.clientListeners) {
       fn(action);
     }
   },
   clientListen: function (callback) {
-    this.relayListeners.push(callback);
+    this.clientListeners.push(callback);
   }
 
 };

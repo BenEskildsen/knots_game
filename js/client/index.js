@@ -7,19 +7,20 @@ const React = require('./react/react.js');
 // $FlowFixMe
 const client = new Eureca.Client();
 window.client = client;
+window.dispatch = Dispatcher.clientDispatch.bind(Dispatcher);
 
 let serverProxy;
 client.ready((server) => {
   serverProxy = server;
 });
 
-client.exports.onClientConnect = function(playerColor, id, actions) {
+client.exports.onClientConnect = function(playerColor, id, actions, gridWidth, gridHeight) {
   Dispatcher.serverListen((action) => {
     serverProxy.onDispatch(playerColor, action);
   });
   console.log("connected with", playerColor, id);
   React.render(
-    <Game id={id} playerColor={playerColor} />,
+    <Game id={id} playerColor={playerColor} gridWidth={gridWidth} gridHeight={gridHeight} />,
     document.getElementById('container'),
   );
   // once ready, dispatch all the actions to catch up the game state

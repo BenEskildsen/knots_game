@@ -19,25 +19,28 @@ export type Action = {
  */
 const Dispatcher = {
   listeners: [],
-  relayListeners: [],
+  clientListeners: [],
 
+  // TODO clear up this distinction.
+  // an action is dispatched TOO the server, not by the server
   serverDispatch: function(action: Action): void {
     for (const fn of this.listeners) {
       fn(action);
     }
   },
-  // listen to actions dispatched from the Dispatcher
+
+  // server listens to actions dispatched from the Dispatcher
   serverListen: function(callback: () => any): void {
     this.listeners.push(callback);
   },
 
   clientDispatch: function(action: Action): void {
-    for (const fn of this.relayListeners) {
+    for (const fn of this.clientListeners) {
       fn(action);
     }
   },
   clientListen: function(callback: () => any): void {
-    this.relayListeners.push(callback);
+    this.clientListeners.push(callback);
   },
 
 };
