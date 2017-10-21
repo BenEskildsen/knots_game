@@ -23,6 +23,11 @@ type State = {
 };
 
 const Knot = React.createClass({
+
+  // --------------------------------------------------------------------------
+  // React lifecycle methods
+  // --------------------------------------------------------------------------
+
   getInitialState: function (): State {
     return {
       placed: this.props.placed,
@@ -39,11 +44,22 @@ const Knot = React.createClass({
       placed: false,
       orientation: 0,
       onDrop: () => {},
+      connections: {
+        top: false,
+        left: false,
+        right: false,
+        bottom: false,
+      },
     };
   },
 
-  onDrop: function(ev: Object): void {
-    this.props.onDrop(ev);
+  componentWillReceiveProps: function(nextProps) {
+    if (nextProps.orientation % 90 == 0 && this.connections) {
+      this.connections = this.orient(
+        nextProps.orientation - this.props.orientation,
+        this.connections,
+      );
+    }
   },
 
   render: function() {
@@ -62,7 +78,15 @@ const Knot = React.createClass({
       >
       </img>
     );
-  }
+  },
+
+  // --------------------------------------------------------------------------
+  // Event handling
+  // --------------------------------------------------------------------------
+
+  onDrop: function(ev: Object): void {
+    this.props.onDrop(ev);
+  },
 });
 
 module.exports = Knot;

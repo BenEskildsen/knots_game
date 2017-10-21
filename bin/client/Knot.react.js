@@ -1,6 +1,11 @@
 const React = require('./react/react.js');
 
 const Knot = React.createClass({
+
+  // --------------------------------------------------------------------------
+  // React lifecycle methods
+  // --------------------------------------------------------------------------
+
   getInitialState: function () {
     return {
       placed: this.props.placed
@@ -16,12 +21,20 @@ const Knot = React.createClass({
       size: 100,
       placed: false,
       orientation: 0,
-      onDrop: () => {}
+      onDrop: () => {},
+      connections: {
+        top: false,
+        left: false,
+        right: false,
+        bottom: false
+      }
     };
   },
 
-  onDrop: function (ev) {
-    this.props.onDrop(ev);
+  componentWillReceiveProps: function (nextProps) {
+    if (nextProps.orientation % 90 == 0 && this.connections) {
+      this.connections = this.orient(nextProps.orientation - this.props.orientation, this.connections);
+    }
   },
 
   render: function () {
@@ -37,6 +50,14 @@ const Knot = React.createClass({
         transform: 'rotate(' + this.props.orientation + 'deg)'
       }
     });
+  },
+
+  // --------------------------------------------------------------------------
+  // Event handling
+  // --------------------------------------------------------------------------
+
+  onDrop: function (ev) {
+    this.props.onDrop(ev);
   }
 });
 

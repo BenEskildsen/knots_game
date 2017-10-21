@@ -10,6 +10,8 @@ const tweenState = require('react-tween-state');
 /**
  * Note: board refers to the pixel coordinates dom element, grid refers to the
  * WxH playing field
+ *
+ * This is basically the god object
  */
 const Game = React.createClass({
   mixins: [tweenState.Mixin],
@@ -83,13 +85,20 @@ const Game = React.createClass({
 
   renderKnot: function (color, type, gridX, gridY, orientation = 0, placed = true) {
     const { boardX, boardY } = this.gridToBoard(gridX, gridY);
+    const connections = {
+      top: type == 'pipe' || type == 'cross',
+      left: type == 'turn' || type == 't' || type == 'cross',
+      right: type == 't' || type == 'cross',
+      bottom: type == 'pipe' || type == 't' || type == 'cross' || type == 'turn'
+    };
     return React.createElement(Knot, {
       type: type, color: color,
       boardX: boardX,
       boardY: boardY,
       size: this.props.knotSize,
       placed: placed,
-      orientation: orientation
+      orientation: orientation,
+      connections: this.orient(orientation, connections)
     });
   },
 
@@ -137,6 +146,7 @@ const Game = React.createClass({
     const knot = this.renderKnot(color, type, gridX, gridY, orientation);
     grid[gridX][gridY] = knot;
     knots.push(knot);
+    this.convertNeighbors(color, type, gridX, gridY, knot.props.connections);
     this.setState({ grid, knots });
   },
 
@@ -144,12 +154,20 @@ const Game = React.createClass({
   rumbles: 0,
 
   rumbleSequence: function (action) {
-    this.rumbles = 30;
+    this.rumbles = 10;
 
     this.rumblerInterval = setInterval(() => {
-      this.rumbles === 0 ? clearInterval(this.rumblerInterval) : this.rumble;
+      this.rumbles === 0 ? this.endRumble() : this.rumble();
       this.rumbles--;
     }, 30);
+  },
+
+  endRumble: function () {
+    clearInterval(this.rumblerInterval);
+    this.setState({
+      xOffset: 0,
+      yOffset: 0
+    });
   },
 
   // --------------------------------------------------------------------------
@@ -172,30 +190,100 @@ const Game = React.createClass({
     };
   },
 
+  convertNeighbors: function (color, type, gridX, gridY, connections) {
+    // TODO centralize in helper fn
+    const x = gridX;
+    const y = gridY;
+    const g = this.state.grid;
+    const width = this.props.gridWidth;
+    const height = this.props.gridHeight;
+    const neighbors = {
+      top: y > 0 ? g[x][y - 1] : null,
+      left: x > 0 ? g[x - 1][y] : null,
+      right: x < width - 1 ? g[x + 1][y] : null,
+      bottom: y < height - 1 ? g[x][y + 1] : null
+    };
+    for (const dir in neighbors) {
+      if (neighbors[dir]) {
+        if (neighbors[dir].props.color !== color && neighbors[dir].props.connections[this.op(dir)] && connections[dir]) {
+          neighbors[dir].props.color = color;
+          const pos = this.boardToGrid(neighbors[dir].props.boardX, neighbors[dir].props.boardY);
+          const nType = neighbors[dir].props.type;
+          const c = {
+            top: nType == 'pipe' || nType == 'cross',
+            left: nType == 'turn' || nType == 't' || nType == 'cross',
+            right: nType == 't' || nType == 'cross',
+            bottom: nType == 'pipe' || nType == 't' || nType == 'cross' || nType == 'turn'
+          };
+          this.convertNeighbors(color, nType, pos.gridX, pos.gridY, this.orient(neighbors[dir].props.orientation, c));
+        }
+      }
+    }
+  },
+
   // are this knot's board coordinates within the board itself?
   onBoard: function (knotX, knotY) {
     const { left, top, bottom, right } = this.state.boardDimensions;
     return knotX < right && knotX > left && knotY > top && knotY < bottom;
   },
 
-  validGridPlacement: function (knotX, knotY) {
+  validGridPlacement: function (knotX, knotY, color, connections) {
     const { gridX, gridY } = this.boardToGrid(knotX, knotY);
     const unoccupied = this.unoccupied(gridX, gridY);
-    const connected = this.connected(gridX, gridY);
-    const notBlockingConnections = this.notBlockingConnections(gridX, gridY);
-    return unoccupied && connected && notBlockingConnections;
+    const connectionsValid = this.connectionsValid(gridX, gridY, color, connections);
+    return unoccupied && connectionsValid;
   },
 
   unoccupied: function (gridX, gridY) {
     return !this.state.grid[gridX][gridY];
   },
 
-  connected: function (gridX, gridY) {
-    return !this.state.grid[gridX][gridY];
+  connectionsValid: function (x, y, color, connections) {
+    const g = this.state.grid;
+    const width = this.props.gridWidth;
+    const height = this.props.gridHeight;
+    const neighbors = {
+      top: y > 0 ? g[x][y - 1] : null,
+      left: x > 0 ? g[x - 1][y] : null,
+      right: x < width - 1 ? g[x + 1][y] : null,
+      bottom: y < height - 1 ? g[x][y + 1] : null
+    };
+
+    // if there are none of your color then you don't have to be color connected
+    let colorConnected = true;
+    for (const knot of this.state.knots) {
+      if (knot.props.color === color) {
+        colorConnected = false;
+        break;
+      }
+    }
+
+    // connections
+    for (const dir in neighbors) {
+      if (neighbors[dir]) {
+        if (neighbors[dir].props.connections[this.op(dir)] != connections[dir]) {
+          return false; // misconnected
+        }
+        if (neighbors[dir].props.color === color && neighbors[dir].props.connections[this.op(dir)] && connections[dir]) {
+          colorConnected = true;
+        }
+      }
+    }
+
+    return colorConnected;
   },
 
-  notBlockingConnections: function (gridX, gridY) {
-    return !this.state.grid[gridX][gridY];
+  op: function (dir) {
+    switch (dir) {
+      case 'top':
+        return 'bottom';
+      case 'left':
+        return 'right';
+      case 'right':
+        return 'left';
+      case 'bottom':
+        return 'top';
+    }
   },
 
   makeGrid: function (width, height, seedFunctions) {
@@ -206,17 +294,35 @@ const Game = React.createClass({
       for (let y = 0; y < height; y++) {
         let maybeKnot = null;
         // NOTE: seeding grid done server side now
-        // for (const seedFn of seedFunctions) {
-        //   maybeKnot = seedFn(x, y);
-        // }
-        // if (maybeKnot) {
-        //   knots.push(maybeKnot);
-        // }
         row.push(maybeKnot);
       }
       grid.push(row);
     }
     return { grid, knots };
+  },
+
+  // NOTE: this is duplicated in Tray.react. I'm sorry.
+  orient: function (orientation, connections) {
+    let rotations = orientation / 90;
+    const neg = rotations < 0;
+    rotations = Math.abs(rotations);
+    for (let i = 0; i < rotations; i++) {
+      // clockwise vs counterclockwise
+      if (!neg) {
+        const topTemp = connections.top;
+        connections.top = connections.left;
+        connections.left = connections.bottom;
+        connections.bottom = connections.right;
+        connections.right = topTemp;
+      } else {
+        const topTemp = connections.top;
+        connections.top = connections.right;
+        connections.right = connections.bottom;
+        connections.bottom = connections.left;
+        connections.left = topTemp;
+      }
+    }
+    return connections;
   }
 
 });
